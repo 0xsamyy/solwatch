@@ -88,7 +88,7 @@ func (s *Subscriber) Run(ctx context.Context) {
 		conn, _, err := dialer.DialContext(ctx, s.wss, nil)
 		if err != nil {
 			wait := bo.Next()
-			log.Printf("[sub %s] dial error: %v; retry in %s", s.shortAddr(), err, wait)
+			log.Printf("[sub %s] dial error: %v; retry in %s", s.prettyAddr(), err, wait)
 			select {
 			case <-ctx.Done():
 				return
@@ -131,7 +131,7 @@ func (s *Subscriber) Run(ctx context.Context) {
 			},
 		}
 		if err := conn.WriteJSON(subMsg); err != nil {
-			log.Printf("[sub %s] write subscribe error: %v", s.shortAddr(), err)
+			log.Printf("[sub %s] write subscribe error: %v", s.prettyAddr(), err)
 			s.open.Store(false)
 			_ = conn.Close()
 			wait := bo.Next()
@@ -174,13 +174,14 @@ func (s *Subscriber) Run(ctx context.Context) {
 				}
 				// Parse minimal JSON to distinguish sub ack vs. update
 				if isNotif(msg) {
-					// produce one-line HTML with short link
-					short := s.shortAddr()
-					link := fmt.Sprintf(`activity detected: <a href="https://solscan.io/account/%s">%s</a>`, s.addr, short)
+					// 🚨 Activity Detected: <a href="...">ABCD...WXYZ</a>
+					short := s.prettyAddr()
+					link := fmt.Sprintf(`🚨 <b>Activity Detected:</b> <a href="https://solscan.io/account/%s">%s</a>`, s.addr, short)
 					if ActivityNotify != nil {
 						ActivityNotify(link)
 					}
 				}
+
 			}
 		}()
 
@@ -191,7 +192,7 @@ func (s *Subscriber) Run(ctx context.Context) {
 
 		if readErr != nil {
 			wait := bo.Next()
-			log.Printf("[sub %s] read error: %v; reconnect in %s", s.shortAddr(), readErr, wait)
+			log.Printf("[sub %s] read error: %v; reconnect in %s", s.prettyAddr(), readErr, wait)
 			select {
 			case <-ctx.Done():
 				return
@@ -243,9 +244,9 @@ func isNotif(raw []byte) bool {
 	return false
 }
 
-func (s *Subscriber) shortAddr() string {
-	if len(s.addr) < 4 {
-		return s.addr
-	}
-	return s.addr[:4] + "..."
+func (s *Subscriber) prettyAddr() string {
+    if len(s.addr) <= 8 {
+        return s.addr
+    }
+    return s.addr[:4] + "..." + s.addr[len(s.addr)-4:]
 }

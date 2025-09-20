@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	tg "github.com/go-telegram/bot"
 
@@ -47,10 +46,8 @@ func main() {
 	// Health aggregator
 	hlth := health.New(tm, st)
 
-	// Initialize Telegram bot (long polling)
-	bot, err := tg.New(cfg.TelegramBotToken, tg.WithLongPoller(&tg.LongPoller{
-		Timeout: 10 * time.Second,
-	}))
+	// Initialize Telegram bot (long polling is default in this library)
+	bot, err := tg.New(cfg.TelegramBotToken)
 	if err != nil {
 		log.Fatalf("telegram init: %v", err)
 	}
